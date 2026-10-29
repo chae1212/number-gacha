@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>두근두근 번호뽑기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff4f8; --ink: #6b3a55; --muted: #a9879a;
+    --pink: #ff7eb0; --pink-d: #e35d93; --line: #ffc8dd; --shadow: #ffd9e8;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink);
+    font-family: 'Jua', sans-serif;
+    background-color: var(--bg);
+    background-image: radial-gradient(#ffd6e6 2px, transparent 2.5px);
+    background-size: 28px 28px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font-family: inherit; color: inherit; cursor: pointer; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0 18px; }
+  h1 {
+    margin: 0; font-weight: 400; font-size: clamp(30px, 7vw, 46px); color: var(--pink);
+    text-shadow: 3px 3px 0 #fff, 5px 5px 0 #ffd1e3;
+  }
+  .icon-btn {
+    flex: none; width: 48px; height: 48px; border-radius: 50%; font-size: 22px;
+    background: #fff; border: 3px solid var(--line); box-shadow: 0 4px 0 var(--shadow);
+  }
+  .icon-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shadow); }
+
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+  @media (max-width: 780px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .panel {
+    background: #fff; border: 3px solid var(--line); border-radius: 28px; padding: 18px;
+    box-shadow: 0 8px 0 var(--shadow);
+  }
+  .panel h2 { margin: 0 0 12px; font-weight: 400; font-size: 22px; color: var(--pink-d); }
+
+  /* ---------- 뽑기 기계 ---------- */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 8px; }
+  .machine { position: relative; width: 260px; }
+  .dome {
+    position: relative; z-index: 2; width: 236px; height: 236px; margin: 0 auto -20px;
+    border-radius: 50%; overflow: hidden;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.95), rgba(225,240,255,.6) 60%, rgba(195,220,255,.65));
+    border: 5px solid #fff; box-shadow: 0 0 0 4px var(--line), inset 0 -12px 30px rgba(150,180,255,.3);
+  }
+  .shine {
+    position: absolute; z-index: 3; left: 36px; top: 30px; width: 52px; height: 24px;
+    border-radius: 50%; background: rgba(255,255,255,.9); transform: rotate(-30deg);
+  }
+  .cap {
+    position: absolute; width: 38px; height: 38px; border-radius: 50%;
+    border: 2px solid rgba(107,58,85,.18);
+    background: linear-gradient(to bottom, var(--c) 50%, #fff 50%);
+    box-shadow: inset -3px -4px 0 rgba(0,0,0,.06);
+    transform: rotate(var(--r));
+  }
+  .cap::after {
+    content: ''; position: absolute; left: 7px; top: 5px; width: 10px; height: 6px;
+    border-radius: 50%; background: rgba(255,255,255,.8);
+  }
+  .shaking .dome { animation: wobble .3s infinite; }
+  .shaking .cap { animation: jiggle .16s infinite alternate ease-in-out; }
+  @keyframes wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+  @keyframes jiggle {
+    from { transform: translate(0, 0) rotate(var(--r)); }
+    to { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--r) + 50deg)); }
+  }
+
+  .body {
+    position: relative; z-index: 1; width: 260px; height: 190px;
+    background: linear-gradient(#ffa3c8, #ff86b5);
+    border: 4px solid var(--pink-d); border-radius: 40px 40px 30px 30px;
+    box-shadow: inset 0 12px 0 rgba(255,255,255,.35);
+  }
+  .face { position: absolute; top: 36px; left: 0; right: 0; height: 40px; }
+  .eye {
+    position: absolute; top: 4px; width: 12px; height: 16px; border-radius: 50%; background: #5a3a4a;
+    animation: blink 4s infinite;
+  }
+  .eye.l { left: 84px; } .eye.r { right: 84px; }
+  @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+  .mouth {
+    position: absolute; left: 50%; top: 16px; width: 22px; height: 12px; margin-left: -11px;
+    border: 3px solid #5a3a4a; border-top: 0; border-radius: 0 0 22px 22px;
+  }
+  .shaking .mouth { height: 16px; width: 18px; margin-left: -9px; border-top: 3px solid #5a3a4a; border-radius: 50%; }
+  .blush { position: absolute; top: 20px; width: 24px; height: 12px; border-radius: 50%; background: rgba(255,70,130,.35); }
+  .blush.l { left: 54px; } .blush.r { right: 54px; }
+
+  .slot {
+    position: absolute; left: 30px; bottom: 22px; width: 92px; height: 64px; overflow: hidden;
+    background: #8a4566; border-radius: 16px 16px 24px 24px; box-shadow: inset 0 9px 0 rgba(0,0,0,.25);
+  }
+  .out-cap { position: absolute; left: 24px; top: -50px; width: 42px; height: 42px; opacity: 0; }
+  .out-cap.drop { animation: drop .6s cubic-bezier(.3,1.6,.5,1) forwards; }
+  @keyframes drop { 0% { top: -50px; opacity: 1; } 100% { top: 14px; opacity: 1; } }
+
+  .knob {
+    position: absolute; right: 32px; bottom: 26px; width: 76px; height: 76px; padding: 0;
+    border-radius: 50%; background: #fff; border: 4px solid var(--pink-d);
+    transition: transform 1.2s cubic-bezier(.5,0,.3,1);
+  }
+  .knob::before {
+    content: ''; position: absolute; left: 50%; top: 7px; bottom: 7px; width: 18px; margin-left: -9px;
+    background: #ffd36e; border: 3px solid #e8a93a; border-radius: 9px;
+  }
+  .feet { display: flex; justify-content: space-between; width: 200px; margin: -6px auto 0; }
+  .feet span { width: 46px; height: 18px; background: var(--pink-d); border-radius: 0 0 18px 18px; }
+
+  /* ---------- 조작 ---------- */
+  .controls { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .stepper {
+    display: flex; align-items: center; gap: 10px; background: #fff;
+    border: 3px solid var(--line); border-radius: 999px; padding: 6px 8px;
+  }
+  .stepper button {
+    width: 38px; height: 38px; border-radius: 50%; border: 0; font-size: 24px; line-height: 1;
+    background: #ffe3ee; color: var(--pink-d);
+  }
+  .stepper button:disabled { opacity: .35; cursor: default; }
+  .stepper b { min-width: 28px; text-align: center; font-size: 26px; font-weight: 400; color: var(--pink-d); }
+  .stepper span { font-size: 18px; color: var(--muted); padding-right: 4px; }
+  .big-btn {
+    min-width: 200px; padding: 14px 36px; font-size: 30px; color: #fff;
+    background: var(--pink); border: 4px solid var(--pink-d); border-radius: 999px;
+    box-shadow: 0 7px 0 var(--pink-d); transition: transform .08s, box-shadow .08s;
+  }
+  .big-btn:hover { filter: brightness(1.05); }
+  .big-btn:active, .big-btn:disabled { transform: translateY(5px); box-shadow: 0 2px 0 var(--pink-d); }
+  .big-btn:disabled { opacity: .7; cursor: default; }
+  .toggle { display: flex; align-items: center; gap: 10px; font-size: 18px; cursor: pointer; }
+  .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .sw {
+    position: relative; width: 50px; height: 28px; border-radius: 999px; background: #ead7e0;
+    transition: background .2s;
+  }
+  .sw::after {
+    content: ''; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 3px rgba(0,0,0,.15); transition: transform .2s;
+  }
+  .toggle input:checked + .sw { background: var(--pink); }
+  .toggle input:checked + .sw::after { transform: translateX(22px); }
+  .toggle input:focus-visible + .sw { outline: 3px solid #a9c4ff; outline-offset: 2px; }
+  .remain { font-size: 18px; color: var(--muted); }
+  .remain b { color: var(--pink-d); font-weight: 400; font-size: 22px; }
+
+  /* ---------- 번호판 ---------- */
+  .board { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+  .num {
+    position: relative; aspect-ratio: 1; font-size: clamp(16px, 3.6vw, 22px);
+    border-radius: 16px; border: 3px solid var(--c); background: #fff;
+    box-shadow: 0 4px 0 var(--c); transition: transform .1s;
+  }
+  .num:hover { transform: translateY(-2px); }
+  .num.drawn { background: var(--c); color: #fff; text-shadow: 0 1px 0 rgba(107,58,85,.45); }
+  .num.drawn::after {
+    content: '♥'; position: absolute; top: -9px; right: -6px; font-size: 16px; color: var(--pink-d);
+    text-shadow: 0 0 0 #fff, 1px 1px 0 #fff, -1px -1px 0 #fff;
+  }
+  .num.excluded { opacity: .35; text-decoration: line-through; box-shadow: none; border-style: dashed; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 12px 0 0; font-size: 15px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 5px; vertical-align: -2px; margin-right: 4px; }
+
+  .history { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px;
+    background: var(--c); font-size: 20px; color: #fff; text-shadow: 0 1px 0 rgba(107,58,85,.45);
+    animation: chipIn .35s cubic-bezier(.3,1.7,.5,1);
+  }
+  .chip small { font-size: 12px; opacity: .85; }
+  @keyframes chipIn { from { transform: scale(0); } to { transform: scale(1); } }
+  .empty { color: var(--muted); font-size: 17px; padding: 8px 0; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .row h2 { margin: 0; }
+  .soft-btn {
+    padding: 8px 16px; font-size: 16px; border-radius: 999px; background: #fff;
+    border: 3px solid var(--line); box-shadow: 0 3px 0 var(--shadow);
+  }
+  .soft-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow); }
+  .right { display: flex; flex-direction: column; gap: 22px; }
+
+  /* ---------- 결과 ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 22px; padding: 20px;
+    background: rgba(255,236,245,.88); backdrop-filter: blur(4px);
+    animation: fadeIn .25s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .results { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; max-width: 900px; }
+  .result { position: relative; width: 150px; height: 170px; opacity: 0; animation: appear .35s cubic-bezier(.3,1.6,.5,1) var(--a) forwards; }
+  .results.one .result { width: 230px; height: 260px; }
+  @keyframes appear { from { opacity: 0; transform: translateY(40px) scale(.5); } to { opacity: 1; transform: none; } }
+  .half {
+    position: absolute; left: 50%; width: 120px; height: 60px; margin-left: -60px;
+    border: 4px solid rgba(107,58,85,.2);
+  }
+  .results.one .half { width: 170px; height: 85px; margin-left: -85px; }
+  .half.top { top: calc(50% - 60px); background: var(--c); border-radius: 120px 120px 0 0; border-bottom-width: 2px; animation: popTop .55s var(--d) forwards; }
+  .half.bot { top: 50%; background: #fff; border-radius: 0 0 120px 120px; border-top-width: 2px; animation: popBot .55s var(--d) forwards; }
+  .results.one .half.top { top: calc(50% - 85px); }
+  @keyframes popTop {
+    0% { transform: none; } 25% { transform: translateY(4px) rotate(4deg); }
+    100% { transform: translate(-30px, -120px) rotate(-40deg); opacity: 0; }
+  }
+  @keyframes popBot {
+    0% { transform: none; } 25% { transform: translateY(-4px) rotate(-4deg); }
+    100% { transform: translate(30px, 110px) rotate(30deg); opacity: 0; }
+  }
+  .card {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #fff; border: 5px solid var(--c); border-radius: 30px; box-shadow: 0 8px 0 var(--c);
+    transform: scale(0); animation: cardIn .5s cubic-bezier(.3,1.7,.5,1) calc(var(--d) + .15s) forwards;
+  }
+  @keyframes cardIn { to { transform: scale(1); } }
+  .card small { font-size: 18px; color: var(--muted); }
+  .card b { font-weight: 400; font-size: 68px; line-height: 1.05; color: var(--pink-d); text-shadow: 3px 3px 0 var(--c); }
+  .results.one .card b { font-size: 112px; }
+  .card span { font-size: 20px; color: var(--ink); }
+  .msg { margin: 0; font-size: clamp(24px, 6vw, 34px); color: var(--pink-d); opacity: 0; transition: opacity .3s; text-align: center; }
+  .msg.show { opacity: 1; }
+  #closeBtn { opacity: 0; pointer-events: none; transition: opacity .3s; }
+  #closeBtn.show { opacity: 1; pointer-events: auto; }
+
+  #confetti { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; z-index: 30; transform: translate(-50%, 140%);
+    padding: 12px 22px; border-radius: 999px; background: #fff; border: 3px solid var(--line);
+    box-shadow: 0 6px 0 var(--shadow); font-size: 18px; transition: transform .3s cubic-bezier(.3,1.5,.5,1);
+    max-width: calc(100% - 32px); text-align: center;
+  }
+  .toast.show { transform: translate(-50%, 0); }
+  footer { text-align: center; color: var(--muted); font-size: 14px; margin: 26px 0 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    .shaking .dome, .shaking .cap, .eye { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>두근두근 번호뽑기</h1>
+    <button class="icon-btn" id="muteBtn" aria-label="소리 켜기/끄기">🔊</button>
+  </header>
+
+  <main>
+    <section class="panel stage">
+      <div class="machine" id="machine">
+        <div class="dome"><div class="shine"></div><div id="capsules"></div></div>
+        <div class="body">
+          <div class="face">
+            <span class="eye l"></span><span class="eye r"></span>
+            <span class="blush l"></span><span class="blush r"></span>
+            <span class="mouth"></span>
+          </div>
+          <div class="slot"><div class="cap out-cap" id="outCap"></div></div>
+          <button class="knob" id="knob" aria-label="손잡이 돌려서 뽑기"></button>
+        </div>
+        <div class="feet"><span></span><span></span></div>
+      </div>
+
+      <div class="controls">
+        <div class="stepper" aria-label="한 번에 뽑을 개수">
+          <button id="minus" aria-label="하나 줄이기">−</button>
+          <b id="count">1</b><span>개씩</span>
+          <button id="plus" aria-label="하나 늘리기">+</button>
+        </div>
+        <button class="big-btn" id="drawBtn">뽑기!</button>
+        <label class="toggle"><input type="checkbox" id="noRepeat"><span class="sw"></span>뽑은 번호는 다시 안 나오게</label>
+        <div class="remain" id="remain"></div>
+      </div>
+    </section>
+
+    <div class="right">
+      <section class="panel">
+        <h2>번호판 (1 ~ 28)</h2>
+        <div class="board" id="board"></div>
+        <div class="legend">
+          <span><i style="background:#ff9ec4"></i>뽑힘</span>
+          <span><i style="border:2px dashed #c9b3ff"></i>뺀 번호</span>
+          <span>번호를 누르면 빼거나 다시 넣을 수 있어요</span>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="row">
+          <h2>뽑은 순서</h2>
+          <button class="soft-btn" id="resetBtn">다시 시작</button>
+        </div>
+        <div class="history" id="history"></div>
+      </section>
+    </div>
+  </main>
+  <footer>스페이스바나 엔터로도 뽑을 수 있어요 ♡</footer>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="results" id="results"></div>
+  <p class="msg" id="msg"></p>
+  <button class="big-btn" id="closeBtn">좋아요!</button>
+</div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+const N = 28, KEY = 'number-gacha-28', MAX_COUNT = 5;
+const COLORS = ['#ff9ec4', '#ffc59e', '#ffe08a', '#b8f2a6', '#9fe6f5', '#a9c4ff', '#c9b3ff'];
+const CHEERS = ['축하해요!', '두근두근 당첨!', '오늘의 주인공!', '짜잔~!', '반짝반짝!', '와아, 당첨이에요!'];
+const $ = id => document.getElementById(id);
+const colorOf = n => COLORS[(n - 1) % COLORS.length];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let S = { drawn: [], excluded: [], noRepeat: true, count: 1, muted: false };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ---------- 사운드 ----------
+let actx = null;
+function beep(f, d = 0.08, type = 'sine', v = 0.12, slide = 1.5, delay = 0) {
+  if (S.muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f, now);
+    o.frequency.exponentialRampToValueAtTime(f * slide, now + d);
+    g.gain.setValueAtTime(0.0001, actx.currentTime);
+    g.gain.setValueAtTime(v, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + d);
+    o.connect(g).connect(actx.destination);
+    o.start(now); o.stop(now + d + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  rattle(ms) { for (let t = 0; t < ms; t += 70) beep(700 + Math.random() * 700, 0.04, 'square', 0.03, 1.1, t / 1000); },
+  thud() { beep(260, 0.25, 'triangle', 0.2, 0.5); },
+  pop() { beep(500, 0.12, 'sine', 0.18, 2.4); },
+  fanfare() { [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.18, 'triangle', 0.12, 1.01, i * 0.1)); },
+  tap() { beep(880, 0.06, 'sine', 0.08, 1.2); },
+  boing() { beep(300, 0.25, 'sine', 0.15, 0.6); },
+};
+
+// ---------- 번호 ----------
+function pool() {
+  const ex = new Set(S.excluded), dr = new Set(S.drawn), p = [];
+  for (let i = 1; i <= N; i++) {
+    if (ex.has(i) || (S.noRepeat && dr.has(i))) continue;
+    p.push(i);
+  }
+  return p;
+}
+function randInt(n) {
+  const a = new Uint32Array(1), limit = Math.floor(0x100000000 / n) * n;
+  do crypto.getRandomValues(a); while (a[0] >= limit);
+  return a[0] % n;
+}
+function pick(k) {
+  const p = pool(), out = [];
+  while (out.length < k && p.length) out.push(p.splice(randInt(p.length), 1)[0]);
+  return out;
+}
+
+// ---------- 화면 ----------
+let shownCaps = -1;
+function renderCapsules(n) {
+  if (n === shownCaps) return;
+  shownCaps = n;
+  const box = $('capsules');
+  box.innerHTML = '';
+  // 돔(지름 226px) 안쪽 원에 맞춰 아래쪽부터 줄 단위로 쌓기
+  const R = 113, CAP = 38, spots = [];
+  for (let y = 176; y > 10 && spots.length < n; y -= 31) {
+    const dy = y + CAP / 2 - R, half = Math.sqrt(Math.max(0, R * R - dy * dy)) - CAP / 2 - 4;
+    const cols = Math.max(1, Math.floor((half * 2) / 36) + 1);
+    const startX = R - ((cols - 1) * 36) / 2 - CAP / 2;
+    for (let col = 0; col < cols && spots.length < n; col++) spots.push([startX + col * 36, y]);
+  }
+  for (let i = 0; i < spots.length; i++) {
+    const c = document.createElement('div');
+    c.className = 'cap';
+    c.style.left = spots[i][0] + (Math.random() * 6 - 3) + 'px';
+    c.style.top = spots[i][1] + (Math.random() * 6 - 3) + 'px';
+    c.style.setProperty('--c', COLORS[i % COLORS.length]);
+    c.style.setProperty('--r', Math.round(Math.random() * 360) + 'deg');
+    c.style.setProperty('--dx', Math.round(Math.random() * 30 - 15) + 'px');
+    c.style.setProperty('--dy', Math.round(-10 - Math.random() * 40) + 'px');
+    box.appendChild(c);
+  }
+}
+
+function render() {
+  const p = pool(), drawnSet = new Set(S.drawn), exSet = new Set(S.excluded);
+  S.count = Math.max(1, Math.min(S.count, MAX_COUNT));
+  const usable = Math.max(1, Math.min(S.count, p.length));
+
+  $('count').textContent = S.count;
+  $('minus').disabled = S.count <= 1;
+  $('plus').disabled = S.count >= MAX_COUNT;
+  $('noRepeat').checked = S.noRepeat;
+  $('muteBtn').textContent = S.muted ? '🔇' : '🔊';
+  $('remain').innerHTML = p.length
+    ? `뽑을 수 있는 번호 <b>${p.length}</b>개` + (usable < S.count ? ` (이번엔 ${usable}개만)` : '')
+    : '모든 번호를 다 뽑았어요! 🎉';
+  renderCapsules(Math.min(p.length, 25));
+
+  const board = $('board');
+  board.innerHTML = '';
+  for (let i = 1; i <= N; i++) {
+    const b = document.createElement('button');
+    b.className = 'num' + (drawnSet.has(i) ? ' drawn' : exSet.has(i) ? ' excluded' : '');
+    b.style.setProperty('--c', colorOf(i));
+    b.textContent = i;
+    b.title = drawnSet.has(i) ? '눌러서 뽑기 기록에서 지우기' : exSet.has(i) ? '눌러서 다시 넣기' : '눌러서 이 번호 빼기';
+    b.onclick = () => toggleNumber(i);
+    board.appendChild(b);
+  }
+
+  const hist = $('history');
+  hist.innerHTML = '';
+  if (!S.drawn.length) hist.innerHTML = '<div class="empty">아직 뽑은 번호가 없어요</div>';
+  S.drawn.forEach((n, idx) => {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.style.setProperty('--c', colorOf(n));
+    c.innerHTML = `<small>${idx + 1}.</small>${n}번`;
+    hist.appendChild(c);
+  });
+}
+
+function toggleNumber(i) {
+  if (busy) return;
+  if (S.drawn.includes(i)) { S.drawn = S.drawn.filter(x => x !== i); toast(`${i}번을 뽑은 기록에서 지웠어요`); }
+  else if (S.excluded.includes(i)) { S.excluded = S.excluded.filter(x => x !== i); toast(`${i}번을 다시 넣었어요`); }
+  else { S.excluded.push(i); toast(`${i}번은 이제 안 나와요`); }
+  sfx.tap(); save(); render();
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ---------- 뽑기 ----------
+let busy = false, knobAngle = 0;
+async function draw() {
+  if (busy) return;
+  const p = pool();
+  if (!p.length) { sfx.boing(); toast('남은 번호가 없어요! "다시 시작"을 눌러 주세요'); return; }
+  busy = true; $('drawBtn').disabled = true;
+  const picks = pick(Math.min(S.count, p.length));
+
+  knobAngle += 360;
+  $('knob').style.transform = `rotate(${knobAngle}deg)`;
+  $('machine').classList.add('shaking');
+  sfx.rattle(1200);
+  await sleep(1250);
+  $('machine').classList.remove('shaking');
+
+  const out = $('outCap');
+  out.style.setProperty('--c', colorOf(picks[0]));
+  out.style.setProperty('--r', '0deg');
+  out.classList.remove('drop'); void out.offsetWidth; out.classList.add('drop');
+  sfx.thud();
+  await sleep(650);
+
+  S.drawn.push(...picks);
+  save();
+  await showResults(picks);
+  out.classList.remove('drop');
+  render();
+  busy = false; $('drawBtn').disabled = false;
+}
+
+function showResults(picks) {
+  return new Promise(resolve => {
+    const ov = $('overlay'), box = $('results'), msg = $('msg'), close = $('closeBtn');
+    box.innerHTML = '';
+    box.classList.toggle('one', picks.length === 1);
+    msg.classList.remove('show'); close.classList.remove('show');
+    const step = picks.length === 1 ? 0 : 0.7;
+    picks.forEach((n, i) => {
+      const a = i * step, d = a + 0.55;
+      const el = document.createElement('div');
+      el.className = 'result';
+      el.style.setProperty('--c', colorOf(n));
+      el.style.setProperty('--a', a + 's');
+      el.style.setProperty('--d', d + 's');
+      el.innerHTML = `<div class="card"><small>두근두근</small><b>${n}</b><span>번</span></div>
+        <div class="half top"></div><div class="half bot"></div>`;
+      box.appendChild(el);
+      setTimeout(() => {
+        sfx.pop();
+        const r = el.getBoundingClientRect();
+        confetti(r.left + r.width / 2, r.top + r.height / 2, picks.length === 1 ? 90 : 40);
+      }, d * 1000 + 150);
+    });
+    const done = ((picks.length - 1) * step + 0.55 + 0.6) * 1000;
+    setTimeout(() => {
+      sfx.fanfare();
+      msg.textContent = picks.length === 1
+        ? `${picks[0]}번, ${CHEERS[randInt(CHEERS.length)]}`
+        : `${picks.join(', ')}번 ${CHEERS[randInt(CHEERS.length)]}`;
+      msg.classList.add('show'); close.classList.add('show');
+      close.focus();
+    }, done);
+    ov.hidden = false;
+    closeResults = () => {
+      if (!close.classList.contains('show')) return;
+      ov.hidden = true; closeResults = null; resolve();
+    };
+  });
+}
+let closeResults = null;
+
+// ---------- 꽃가루 ----------
+const cv = $('confetti'), cx = cv.getContext('2d');
+let bits = [], running = false;
+function fitCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', fitCanvas); fitCanvas();
+function confetti(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = 3 + Math.random() * 9;
+    bits.push({
+      x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 6, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+      size: 6 + Math.random() * 7, color: COLORS[randInt(COLORS.length)], shape: randInt(3), life: 1,
+    });
+  }
+  if (!running) { running = true; requestAnimationFrame(tick); }
+}
+function heart(s) {
+  cx.beginPath();
+  cx.moveTo(0, s * 0.3);
+  cx.bezierCurveTo(0, 0, -s * 0.5, 0, -s * 0.5, s * 0.3);
+  cx.bezierCurveTo(-s * 0.5, s * 0.6, 0, s * 0.8, 0, s);
+  cx.bezierCurveTo(0, s * 0.8, s * 0.5, s * 0.6, s * 0.5, s * 0.3);
+  cx.bezierCurveTo(s * 0.5, 0, 0, 0, 0, s * 0.3);
+  cx.fill();
+}
+function tick() {
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  for (const b of bits) {
+    b.vy += 0.25; b.vx *= 0.99; b.x += b.vx; b.y += b.vy; b.rot += b.vr; b.life -= 0.008;
+    cx.save(); cx.globalAlpha = Math.max(0, Math.min(1, b.life * 2));
+    cx.translate(b.x, b.y); cx.rotate(b.rot); cx.fillStyle = b.color;
+    if (b.shape === 0) cx.fillRect(-b.size / 2, -b.size / 4, b.size, b.size / 2);
+    else if (b.shape === 1) { cx.beginPath(); cx.arc(0, 0, b.size / 2.5, 0, Math.PI * 2); cx.fill(); }
+    else { cx.translate(0, -b.size * 0.6); heart(b.size * 1.3); }
+    cx.restore();
+  }
+  bits = bits.filter(b => b.life > 0 && b.y < innerHeight + 40);
+  if (bits.length) requestAnimationFrame(tick);
+  else { running = false; cx.clearRect(0, 0, innerWidth, innerHeight); }
+}
+
+// ---------- 입력 ----------
+$('drawBtn').onclick = draw;
+$('knob').onclick = draw;
+$('closeBtn').onclick = () => closeResults && closeResults();
+$('overlay').onclick = e => { if (e.target === $('overlay') && closeResults) closeResults(); };
+$('minus').onclick = () => { S.count--; sfx.tap(); save(); render(); };
+$('plus').onclick = () => { S.count++; sfx.tap(); save(); render(); };
+$('noRepeat').onchange = e => { S.noRepeat = e.target.checked; sfx.tap(); save(); render(); };
+$('muteBtn').onclick = () => { S.muted = !S.muted; save(); render(); sfx.tap(); };
+$('resetBtn').onclick = () => {
+  if (busy) return;
+  if (!S.drawn.length && !S.excluded.length) { toast('이미 처음 상태예요'); return; }
+  if (!confirm('뽑은 기록과 뺀 번호를 모두 지우고 처음부터 할까요?')) return;
+  S.drawn = []; S.excluded = [];
+  save(); render(); sfx.fanfare(); toast('처음부터 다시 시작해요!');
+};
+addEventListener('keydown', e => {
+  if (e.key !== ' ' && e.key !== 'Enter') return;
+  if (e.target.closest && e.target.closest('.board, .stepper, #muteBtn, #resetBtn, .toggle')) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (closeResults) closeResults();
+  else draw();
+});
+
+render();
+</script>
+</body>
+</html>
